@@ -1,6 +1,6 @@
-import { appDirectoryName, fileEncoding, welcomeFileName } from "../../shared/constants"
+import { api, appDirectoryName, fileEncoding, welcomeFileName } from "../../shared/constants"
 import { NoteInfo } from "@shared/models"
-import { DeleteNote, GetNotes, ReadNote, WriteNote } from "@shared/types"
+import { CreateNote, CreateNoteDB, DeleteNote, GetNotes, ReadNote, SaveNote, WriteNote } from "@shared/types"
 import { dialog } from "electron"
 import { writeFile, ensureDir, readdir, stat, readFile, remove } from "fs-extra"
 import { homedir } from "os"
@@ -38,7 +38,11 @@ export const getNotes: GetNotes = async () => {
 }
 
 export const getNoteInfoFromFilename = async (filename: string): Promise<NoteInfo> => {
+  console.log("Error al obtener informacion")
+  console.log("filename", filename)
   const fileStats = await stat(`${getRootDir()}/${filename}`)
+
+  console.log("fileStats", fileStats)
 
   return {
     id: fileStats.ino,
@@ -64,7 +68,7 @@ export const writeNote: WriteNote = async (filename, content) => {
   return writeFile(`${rootDir}/${filename}.md`, content, { encoding: fileEncoding })
 }
 
-export const createNote = async () => {
+export const createNote: CreateNote = async () => {
   const rootDir = getRootDir()
 
   await ensureDir(rootDir)
@@ -99,7 +103,30 @@ export const createNote = async () => {
   console.info(`Creando nota ${filePath}`)
   await writeFile(filePath, '')
 
-  return filename
+  let fileStats
+
+  while (true) {
+    try {
+      fileStats = await stat(filePath);
+      console.log('Estadísticas del archivo:', fileStats);
+      break; // Salir del bucle si se obtienen las estadísticas del archivo
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        // Esperar un momento antes de volver a intentar obtener las estadísticas
+        console.log('El archivo aún no existe. Esperando...');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Esperar 1 segundo
+      } else {
+        throw error; // Relanzar error si es distinto de "No such file or directory"
+      }
+    }
+  }
+  // const fileStats = await stat(`${getRootDir()}/${filename}`)
+
+  console.log("fileStats", fileStats)
+  // const note = await getNoteInfoFromFilename(filename)
+  const id = fileStats.ino
+
+  return [filename, id]
 }
 
 export const deleteNote: DeleteNote = async (filename) => {
@@ -122,4 +149,45 @@ export const deleteNote: DeleteNote = async (filename) => {
   console.info(`Eliminando nota ${filename}`)
   await remove(`${rootDir}/${filename}.md`)
   return true
+}
+
+export const saveNote: SaveNote = async (note) => {
+  try {
+    const response = await fetch(`${api}/notes/${note.id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(note),
+    })
+
+    if (!response.ok) {
+      throw new Error("Error al guardar la nota")
+    }
+
+    return true
+  } catch (error) {
+    console.error("Error al guardar la nota", error)
+    return false
+  }
+}
+
+export const createNoteDB: CreateNoteDB = async (note) => {
+  try {
+    const response = await fetch(`${api}/notes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(note),
+    })
+
+    if (!response.ok) {
+      throw new Error("Error al guardar la nota")
+    }
+    return true
+  } catch (error) {
+    console.error("Error al guardar la nota", error)
+    return false
+  }
 }

@@ -42,7 +42,7 @@ export const selectedNoteAtomAsync = atom(async (get) => {
 export const selectedNoteAtom = unwrap(selectedNoteAtomAsync, (prev) => prev ?? {
   id: 0,
   title: "",
-  content: "",
+  content: "Hello",
   categories: [],
   shared_with: [],
   created_at: Date.now(),
@@ -54,19 +54,28 @@ export const createEmptyNoteAtom = atom(null, async (get, set) => {
 
   if (!notes) return
 
-  const title = await window.context.createNote()
+  const result = await window.context.createNote()
+  console.log("createEmptyNoteAtom", result)
 
-  if (!title) return
+  if (!result) return
+
+  const [title, id] = result
 
   const newNote: NoteInfo = {
-    id: notes.length + 1,
+    id,
     title,
-    content: "Hello from Notes",
+    content: "",
     categories: [],
     shared_with: [],
     created_at: Date.now(),
     updated_at: Date.now()
   }
+
+  const success = await window.context.createNoteDB(newNote)
+
+  success
+    ? console.info("Nota creada en la base de datos.")
+    : console.info("No se pudo crear la nota")
 
   set(notesAtom, [newNote, ...notes.filter(note => note.id !== newNote.id)])
   set(selectedNoteIdAtom, newNote.id)
@@ -92,10 +101,16 @@ export const saveNoteAtom = atom(null, async (get, set, newContent: NoteContent)
   const selectedNote = get(selectedNoteAtom)
 
   if (!selectedNote || !notes) return
-
+  console.info("selectedNote", selectedNote)
   //Guardar en disco
 
   await window.context.writeNote(selectedNote.title, newContent)
+
+  // TODO: Guardar nota en la DB
+  const save = await window.context.saveNote(selectedNote)
+
+  save ? console.info("Nota guardada en la base de datos.") : console.info("No se pudo guardar la nota")
+
 
   // Actualizar el estado
   set(

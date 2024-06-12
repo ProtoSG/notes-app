@@ -10,6 +10,7 @@ export type NotePreviewProps = NoteInfo & {
 export const NotePreview = ({
   title,
   content,
+  created_at,
   updated_at,
   isActive = false,
   className,

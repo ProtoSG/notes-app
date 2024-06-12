@@ -15,7 +15,6 @@ export const useMarkdownEditor = () => {
     if (!selectedNote) return
 
     console.info("Guardando Automaticamente", selectedNote.title)
-
     await saveNote(content)
   }, autoSaveInterval, {
     leading: false,

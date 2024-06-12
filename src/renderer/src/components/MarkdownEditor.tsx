@@ -3,7 +3,7 @@ import { useMarkdownEditor } from "@renderer/hooks/useMarkdownEditor"
 
 export const MarkdownEditor = () => {
   const { handleBlur, editorRef, selectedNote, handleAutoSave } = useMarkdownEditor()
-
+  console.log("selectedNote", selectedNote)
   if (!selectedNote) return null
 
   return (
